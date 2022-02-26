@@ -39,6 +39,7 @@
 * [`api.sendTypingIndicator`](#sendTypingIndicator)
 * [`api.setMessageReaction`](#setMessageReaction)
 * [`api.setOptions`](#setOptions)
+* [`api.setPostReaction`](#setPostReaction)
 * [`api.setTitle`](#setTitle)
 * [`api.threadColors`](#threadColors)
 * [`api.unsendMessage`](#unsendMessage)
