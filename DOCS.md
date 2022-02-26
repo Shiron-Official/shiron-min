@@ -25,6 +25,7 @@
 * [`api.getUserID`](#getUserID)
 * [`api.getUserInfo`](#getUserInfo)
 * [`api.handleMessageRequest`](#handleMessageRequest)
+* [`api.listen`](#listen)
 * [`api.listenMqtt`](#listenMqtt)
 * [`api.logout`](#logout)
 * [`api.markAsDelivered`](#markAsDelivered)
@@ -192,7 +193,7 @@ __Arguments__
 ---------------------------------------
 
 <a name="changeAdminStatus"></a>
-### api.changeAdminStatus(threadID, adminIDs, adminStatus)
+### api.changeAdminStatus(threadID, adminIDs, adminStatus[, callback])
 
 Given a adminID, or an array of adminIDs, will set the admin status of the user(s) to `adminStatus`.
 
@@ -200,6 +201,7 @@ __Arguments__
 * `threadID`: ID of a group chat (can't use in one-to-one conversations)
 * `adminIDs`: The id(s) of users you wish to admin/unadmin (string or an array).
 * `adminStatus`: Boolean indicating whether the user(s) should be promoted to admin (`true`) or demoted to a regular user (`false`).
+* `callback(err)`: A callback called when the query is done (either with an error or null).
 
 __Example__
 
@@ -207,17 +209,21 @@ __Example__
 const fs = require("fs");
 const login = require("fca-unofficial");
 
-login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, async function(err, api) {
+login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, api) => {
     if (err) return console.error(err);
 
     let threadID = "0000000000000000";
     let newAdmins = ["111111111111111", "222222222222222"];
-    await api.changeAdminStatus(threadID, newAdmins, true);
+    api.changeAdminStatus(threadID, newAdmins, true, editAdminsCallback);
 
     let adminToRemove = "333333333333333";
-    await api.changeAdminStatus(threadID, adminToRemove, false);
+    api.changeAdminStatus(threadID, adminToRemove, false, editAdminsCallback);
 
 });
+
+function editAdminsCallback(err) {
+    if (err) return console.error(err);
+}
 
 ```
 
@@ -1034,7 +1040,7 @@ The message object will contain different fields based on its type (as determine
 		<th>Description</th>
 	</tr>
 	<tr>
-		<td rowspan="10">
+		<td rowspan="9">
 			<code>"message"</code><br />
 			A message was sent to a thread.
 		</td>
@@ -1070,15 +1076,11 @@ The message object will contain different fields based on its type (as determine
 		<td>Boolean representing whether or not the message was read.</td>
 	</tr>
 	<tr>
-		<td><code>participantIDs</code></td>
-		<td>An array containing participant IDs.</td>
-	</tr>	
-	<tr>
 		<td><code>type</code></td>
 		<td>For this event type, this will always be the string <code>"message"</code>.</td>
-	</tr>	
+	</tr>
 	<tr>
-		<td rowspan="7">
+		<td rowspan="6">
 			<code>"event"</code><br />
 			An event occurred within a thread. Note that receiving this event type needs to be enabled with `api.setOptions({ listenEvents: true })`
 		</td>
@@ -1095,16 +1097,12 @@ The message object will contain different fields based on its type (as determine
 	</tr>
 	<tr>
 		<td><code>logMessageType</code></td>
-		<td>String representing the type of event (<code>log:subscribe</code>, <code>log:unsubscribe</code>, <code>log:thread-name</code>, <code>log:thread-color</code>, <code>log:thread-icon</code>, <code>log:user-nickname</code>, <code>log:thread-call</code>, <code>log:thread-admins</code>)</td>
+		<td>String representing the type of event (<code>log:subscribe</code>, <code>log:unsubscribe</code>, <code>log:thread-name</code>, <code>log:thread-color</code>, <code>log:thread-icon</code>, <code>log:user-nickname</code>)</td>
 	</tr>
 	<tr>
 		<td><code>threadID</code></td>
 		<td>The threadID representing the thread in which the message was sent.</td>
 	</tr>
-	<tr>
-		<td><code>participantIDs</code></td>
-		<td>An array containing participant IDs.</td>
-	</tr>	
 	<tr>
 		<td><code>type</code></td>
 		<td>For this event type, this will always be the string <code>"event"</code>.</td>
@@ -1250,7 +1248,7 @@ The message object will contain different fields based on its type (as determine
 		<td>For this event type, this will always be the string <code>"message_unsend"</code>.</td>
 	</tr>
 	<tr>
-		<td rowspan="11">
+		<td rowspan="10">
 			<code>"message_reply"</code><br />
 			A reply message was sent to a thread.
 		</td>
@@ -1289,10 +1287,6 @@ The message object will contain different fields based on its type (as determine
 		<td><code>type</code></td>
 		<td>For this event type, this will always be the string <code>"message_reply"</code>.</td>
 	</tr>
-	<tr>
-		<td><code>participantIDs</code></td>
-		<td>An array containing participant IDs.</td>
-	</tr>	
 	<tr>
 		<td><code>messageReply</code></td>
 		<td>An object represent a message being replied. Content inside is the same like a normal <code>"message"</code> event.</td>
@@ -1663,7 +1657,6 @@ __Arguments__
 
 * `options` - An object containing the new values for the options that you want
   to set.  If the value for an option is unspecified, it is unchanged. The following options are possible.
-    - `pauseLog`: (Default `false`) Set this to `true` if you want to pause the npmlog output.
     - `logLevel`: The desired logging level as determined by npmlog.  Choose
       from either `"silly"`, `"verbose"`, `"info"`, `"http"`, `"warn"`, `"error"`, or `"silent"`.
     - `selfListen`: (Default `false`) Set this to `true` if you want your api
@@ -1706,6 +1699,27 @@ login({appState: JSON.parse(fs.readFileSync('appstate.json', 'utf8'))}, (err, ap
     });
 });
 ```
+
+---------------------------------------
+
+<a name="setPostReaction"></a>
+### api.setPostReaction(postID, type[, callback])
+__Arguments__
+
+* `postID`: id of the post to react.
+* `type`: A string reaction type or key reaction.
+* `callback(err, obj)`: A callback called when the query is done.
+
+|Key|Reaction Type|
+|---|---|
+|0|unlike|
+|1|like|
+|2|heart|
+|16|love|
+|4|haha|
+|3|wow|
+|7|sad|
+|8|angry|
 
 ---------------------------------------
 
